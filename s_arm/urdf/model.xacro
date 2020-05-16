@@ -1,86 +1,96 @@
 <?xml version="1.0" ?>
 <robot name="s_arm" xmlns:xacro="http://ros.org/wiki/xacro">
+  <!-- Constants for robot dimensions-->
+  <xacro:property name="PI" value="3.1415926535897931" />
+  <xacro:property name="mass" value="1" />
+  <xacro:property name="width" value="0.1" />
+  <xacro:property name="height1" value="2" />
+  <xacro:property name="height2" value="1" />
+  <xacro:property name="offset" value="0.05" />
+
+  <link name="world"/>
 
   <joint name="dummy_joint" type="fixed">
      <parent link="world"/>
      <child link="link_0"/>
-     <origin rpy="0 0 0" xyz="0 0 1.1"/>
    </joint>
-
-  <joint name="joint_1" type="revolute">
-    <parent link="link_0"/>
-    <child link="link_1"/>
-    <origin rpy="0 0 0" xyz="0 0 1.1"/>
-    <axis xyz="0 -1  0"/>
-    <dynamics damping="15" friction="0.0"/>
-    <limit effort="1e10" lower="-3.1415" upper="3.1415" velocity="1e10"/>
-  </joint>
-
-    <link name="world">
-       </link>
 
   <link name="link_0">
     <inertial>
-      <mass value="1"/>
-      <origin rpy="0 0 0" xyz="0 0 0"/>
-      <inertia ixx="0.25" ixy="0" ixz="0" iyy="0.25" iyz="0" izz="0.0001"/>
+      <mass value="${mass}"/>
+      <origin rpy="0 0 0" xyz="0 0 ${height1/2}"/>
+      <!--inertia ixx="0.25" ixy="0" ixz="0" iyy="0.25" iyz="0" izz="0.0001"/>
+    </inertial-->
+      <inertia
+          ixx="${mass / 12.0 * (width*width + height1*height1)}" ixy="0.0" ixz="0.0"
+          iyy="${mass / 12.0 * (height1*height1 + width*width)}" iyz="0.0"
+          izz="${mass / 12.0 * (width*width + width*width)}"/>
     </inertial>
     <collision name="collision">
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+	<origin rpy="0 0 0" xyz="0 0 ${height1/2}"/>
       <geometry>
-        <cylinder length="2.2" radius="0.12"/>
+        <box size="${width} ${width} ${height1}"/>
       </geometry>
     </collision>
     <visual name="visual">
-      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <origin rpy="0 0 0" xyz="0 0 ${height1/2}"/>
       <geometry>
-        <cylinder length="2.2" radius="0.12"/>
+        <box size="${width} ${width} ${height1}"/>
       </geometry>
     </visual>
   </link>
   
   <link name="link_1">
     <inertial>
-      <mass value="1"/>
-      <origin rpy="0 1.5707 0" xyz="1.0 -0.24 0"/>
-      <inertia ixx="0.25" ixy="0" ixz="0" iyy="0.25" iyz="0" izz="0.0001"/>
+      <origin xyz="0 0 ${height2/2 - offset}" rpy="0 0 0"/>
+      <mass value="${mass}"/>
+      <inertia
+          ixx="${mass / 12.0 * (width*width + height2*height2)}" ixy="0.0" ixz="0.0"
+          iyy="${mass / 12.0 * (height2*height2 + width*width)}" iyz="0.0"
+          izz="${mass / 12.0 * (width*width + width*width)}"/>
     </inertial>
     <collision name="collision">
-      <origin rpy="0 1.5707 0" xyz="1.0 -0.24 0"/>
+      <origin xyz="0 0 ${height2/2 - offset}" rpy="0 0 0"/>
       <geometry>
-        <cylinder length="2.0" radius="0.12"/>
-      </geometry>
+        <box size="${width} ${width} ${height2}"/>
+      </geometry> 
     </collision>
     <visual name="visual">
-      <origin rpy="0 1.5707 0" xyz="1.0 -0.24 0"/>
+      <origin xyz="0 0 ${height2/2 - offset}" rpy="0 0 0"/>
       <geometry>
-        <cylinder length="2.0" radius="0.12"/>
+        <box size="${width} ${width} ${height2}"/>
       </geometry>
     </visual>
   </link>
   
-    <!-- Transmissions for ROS Control -->
-    <xacro:macro name="transmission_block" params="joint_name">
-        <transmission name="tran1">
-            <type>transmission_interface/SimpleTransmission</type>
-            <joint name="${joint_name}">
-                <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-            </joint>
-            <actuator name="motor1">
-                <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
-                <mechanicalReduction>1</mechanicalReduction>
-            </actuator>
-        </transmission>
-    </xacro:macro>
+  <joint name="joint_1" type="revolute">
+    <parent link="link_0"/>
+    <child link="link_1"/>
+    <origin xyz="0 ${width} ${height1 - offset}" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <!--dynamics damping="15" friction="0.0"/-->
+    <dynamics damping="0.7" />
+    <limit effort="1e10" lower="-3.1415" upper="3.1415" velocity="1e10"/>
+  </joint>
 
-    <xacro:transmission_block joint_name="joint_1"/>
+
+  <transmission name="tran1">
+    <type>transmission_interface/SimpleTransmission</type>
+    <joint name="joint_1">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+    </joint>
+    <actuator name="motor1">
+      <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+      <mechanicalReduction>1</mechanicalReduction>
+    </actuator>
+    </transmission>
 
     <!-- ros_control plugin -->
     <gazebo>
-        <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
-            <robotNamespace>/s_arm</robotNamespace>
-        </plugin>
+      <plugin name="gazebo_ros_control" filename="libgazebo_ros_control.so">
+	<robotNamespace>/s_arm</robotNamespace>
+	<robotSimType>gazebo_ros_control/DefaultRobotHWSim</robotSimType>
+      </plugin>
     </gazebo>
     
-
 </robot>
