@@ -2,6 +2,7 @@
 
 存放一些实验代码，用于配套在古月居发表的文章
 
+
 ## 文件说明
 
 ### s_arm：ROS实验 | PID控制在做什么
@@ -12,6 +13,8 @@
 cd ~/catkin_ws
 catkin_make
 roslaunch s_arm s_arm_gazebo.launch
+roslaunch s_arm s_arm_controller.launch
+
 ```
 
 发布关节位置
